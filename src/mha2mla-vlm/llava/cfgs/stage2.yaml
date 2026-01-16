@@ -1,0 +1,90 @@
+# Stage 2: With SVD (joint KV method, decoupled of vision and text), PEFT V2 Training
+
+# ========== Model Configuration ==========
+model: "llava-1.5-7b-hf"
+torch_dtype: bfloat16
+
+# ========== Stage 1 Configuration (Checkpoint Loading) ==========
+stage1_path: "llava/checkpoints/stage1_ckpt"
+
+# ========== Training Type & Freezing ==========
+train_type: full
+freeze_llm: false
+freeze_vit: true
+freeze_aligner: false
+
+# ========== Dataset Configuration ==========
+dataset:
+  - "data/llava/llava-process-train.json"
+val_dataset:
+  - "data/llava/llava-process-eval.json"
+
+max_length: 4096
+
+# ========== Training Hyperparameters ==========
+learning_rate: 1.0e-06  # Recommended LR for different low_rank: 16->1e-5, 32->5e-6, 64->1e-6 (see Appendix)
+per_device_train_batch_size: 1
+per_device_eval_batch_size: 1
+gradient_accumulation_steps: 16
+weight_decay: 0.0
+warmup_ratio: 0.03
+lr_scheduler_type: cosine
+num_train_epochs: 1
+
+# ========== Optimizer Configuration ==========
+optimizer: constant_with_warmup_decay
+optimizer_lr_scheduler_kwargs:
+  # Learning rate warmup phase: gradually increase LR from 0 to initial LR
+  lr_warmup_steps: 0.1        # Ratio (0.0-1.0): warmup duration as % of total steps
+  lr_warmup_style: "linear"   # Warmup method: "linear" (gradual increase) or "constant" (immediate jump to initial LR)
+  
+  # Learning rate decay phase: gradually decrease LR after a certain point
+  lr_decay_starting_step: 0.9  # Ratio (0.0-1.0): when to start decay as % of total steps
+  lr_decay_steps: 0.1          # Ratio (0.0-1.0): decay duration as % of total steps
+  lr_decay_style: "1-sqrt"     # Decay method: "linear", "cosine", or "1-sqrt" (inverse square root for smooth decay)
+  min_decay_lr: 0              # Minimum learning rate at end of decay phase (typically 0 or 10% of initial LR)
+
+# ========== Distributed Training ==========
+deepspeed: zero1
+
+# ========== Random Seed ==========
+data_seed: 2025
+
+
+# ========== Checkpointing & Logging ==========
+output_dir: "llava/checkpoints/stage2_ckpt"
+save_only_model: true
+save_strategy: epoch
+logging_steps: 1
+logging_first_step: true
+report_to:
+  - wandb
+
+# ========== Evaluation ==========
+eval_strategy: steps
+eval_steps: 100
+
+# ========== Hardware Optimization ==========
+gradient_checkpointing: false
+dataloader_num_workers: 4
+
+# ========== MHA2MLA Model Arguments ==========
+# PEFT Training Configuration (v2)
+peft_train: "v2"
+
+# RoPE Configuration
+partial_rope_version: "mkl"
+rope_dim_for_mla: 32
+uniform_start_point: 0
+
+# QK Tensor Path
+qk_tensor_path: "mkl/llava/llava-ranks.pth"
+
+# SVD Configuration (Stage2 uses joint method with low_rank)
+svd_init_method: "joint"
+low_rank: 64 # 16/32/64 (see Appendix for details)
+# Note: Update svd_init_weight_path to match low_rank value
+# - low_rank=16 -> rope32_low_rank16.pt
+# - low_rank=32 -> rope32_low_rank32.pt  
+# - low_rank=64 -> rope32_low_rank64.pt
+svd_init_weight_path: "llava/analysis_svd/results/rope32_low_rank64.pt"

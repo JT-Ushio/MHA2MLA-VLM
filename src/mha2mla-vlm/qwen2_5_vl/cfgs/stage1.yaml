@@ -1,0 +1,77 @@
+# Stage 1: Without SVD, PEFT V4 Training
+
+# ========== Model Configuration ==========
+model: "Qwen2.5-VL-7B-Instruct"
+torch_dtype: bfloat16
+
+# ========== Training Type & Freezing ==========
+train_type: full
+freeze_llm: False
+freeze_vit: True
+freeze_aligner: False
+
+# ========== Dataset Configuration ==========
+dataset:
+  - "data/llava-next/llavanext-process-train.json"
+val_dataset:
+  - "data/llava-next/llavanext-process-eval.json"
+max_length: 4096
+
+# ========== Training Hyperparameters ==========
+learning_rate: 1.0e-05
+per_device_train_batch_size: 2
+per_device_eval_batch_size: 1
+gradient_accumulation_steps: 8
+weight_decay: 0.0
+warmup_ratio: 0.03
+lr_scheduler_type: cosine
+num_train_epochs: 1
+
+# ========== Optimizer Configuration ==========
+optimizer: constant_with_warmup_decay
+optimizer_lr_scheduler_kwargs:
+  # Learning rate warmup phase: gradually increase LR from 0 to initial LR
+  lr_warmup_steps: 0.1        # Ratio (0.0-1.0): warmup duration as % of total steps
+  lr_warmup_style: "linear"   # Warmup method: "linear" (gradual increase) or "constant" (immediate jump to initial LR)
+  
+  # Learning rate decay phase: gradually decrease LR after a certain point
+  lr_decay_starting_step: 0.9  # Ratio (0.0-1.0): when to start decay as % of total steps
+  lr_decay_steps: 0.1          # Ratio (0.0-1.0): decay duration as % of total steps
+  lr_decay_style: "1-sqrt"     # Decay method: "linear", "cosine", or "1-sqrt" (inverse square root for smooth decay)
+  min_decay_lr: 0              # Minimum learning rate at end of decay phase (typically 0 or 10% of initial LR)
+
+# ========== Distributed Training ==========
+deepspeed: zero1
+
+# ========== Checkpointing & Logging ==========
+output_dir: "qwen2_5_vl/checkpoints/stage1_ckpt"
+save_only_model: true
+save_strategy: epoch
+logging_steps: 1
+logging_first_step: true
+report_to:
+  - wandb
+
+# ========== Evaluation ==========
+eval_strategy: steps
+eval_steps: 100
+
+# ========== Hardware Optimization ==========
+gradient_checkpointing: false
+dataloader_num_workers: 4
+
+# ========== MHA2MLA Model Arguments ==========
+# PEFT Training Configuration
+peft_train: "v4"
+
+# RoPE Configuration
+partial_rope_version: "mkl"
+rope_dim_for_mla: 32
+uniform_start_point: 0
+
+# QK Tensor Path
+qk_tensor_path: "mkl/qwen2_5_vl/qwen2_5_vl-ranks.pth"
+
+# SVD Configuration
+svd_init_method: "none"
+low_rank: 0
