@@ -14,7 +14,8 @@ Our code supports three representative VLMs:
 ## News
 
 <!-- - [2025.02.2] The paper of MHA2MLA-VLM is publicly available:  -->
-- [2025.01.17] Released the MHA2MLA-VLM code, providing usage code for VLMs fine-tuning and evaluations.
+- [2026.01.22] The three [MLA checkpoints](https://huggingface.co/cnxup/models) ($d_{kv}$=32/64/128) derived from `Qwen2.5-VL-7B` are publicly available.
+- [2026.01.17] Released the MHA2MLA-VLM code, providing usage code for VLMs fine-tuning and evaluations.
 
 
 
@@ -81,4 +82,18 @@ If you want to use the quantized KV cache, you can use the following command:
 ```sh
 cd eval/llavanext
 sh eval_quant.sh
+```
+
+## Citation
+
+```bibtex
+@misc{fan2026mha2mlavlmenablingdeepseekseconomical,
+      title={MHA2MLA-VLM: Enabling DeepSeek's Economical Multi-Head Latent Attention across Vision-Language Models}, 
+      author={Xiaoran Fan and Zhichao Sun and Tao Ji and Lixing Shen and Tao Gui},
+      year={2026},
+      eprint={2601.11464},
+      archivePrefix={arXiv},
+      primaryClass={cs.CV},
+      url={https://arxiv.org/abs/2601.11464}, 
+}
 ```
